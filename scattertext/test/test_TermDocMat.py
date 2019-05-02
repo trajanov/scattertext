@@ -132,6 +132,17 @@ class TestTermDocMat(TestCase):
                              and term not in ENGLISH_STOP_WORDS),
                          set(uni_term_df.index)),
 
+    def test_allow_single_quotes_in_unigrams(self):
+        tdm = make_a_test_term_doc_matrix()
+        self.assertEqual(type(tdm.allow_single_quotes_in_unigrams()), type(tdm))
+        uni_tdm = tdm.get_stoplisted_unigram_corpus()
+        term_df = tdm.get_term_freq_df()
+        uni_term_df = uni_tdm.get_term_freq_df()
+        self.assertEqual(set(term for term in term_df.index
+                             if ' ' not in term
+                             and term not in ENGLISH_STOP_WORDS),
+                         set(uni_term_df.index)),
+
     def test_get_stoplisted_unigram_corpus_and_custom(self):
         tdm = make_a_test_term_doc_matrix()
         uni_tdm = tdm.get_stoplisted_unigram_corpus_and_custom(['joe'])
@@ -246,8 +257,11 @@ class TestTermDocMat(TestCase):
                          set(swiftless.get_terms()))
         pd.testing.assert_series_equal(swiftless_constructed.get_texts(),
                                        swiftless.get_texts())
+        np.testing.assert_equal(swiftless.get_category_names_by_row(),
+                                swiftless_constructed.get_category_names_by_row())
 
-    def test_get_category_names_by_row(self):
+
+    def test_get_category_names_by_row2(self):
         hamlet = get_hamlet_term_doc_matrix()
         returned = hamlet.get_category_names_by_row()
         self.assertEqual(len(hamlet._y),

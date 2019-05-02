@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pandas as pd
 
-from scattertext import TermDocMatrix
 from scattertext.CSRMatrixTools import delete_columns, CSRMatrixFactory
 from scattertext.FeatureOuput import FeatureLister
 from scattertext.Common import SPACY_ENTITY_TAGS, MY_ENGLISH_STOP_WORDS, DEFAULT_BACKGROUND_SCALER_ALGO, \
@@ -38,9 +37,19 @@ class TermDocMatrixWithoutCategories(object):
         self._metadata_idx_store = metadata_idx_store
         self._unigram_frequency_path = unigram_frequency_path
         self._background_corpus = None
+        self._strict_unigram_definition = True
 
     def get_default_stoplist(self):
         return MY_ENGLISH_STOP_WORDS
+
+    def allow_single_quotes_in_unigrams(self):
+        '''
+        Don't filter out single quotes in unigrams
+        :return: self
+        '''
+        self._strict_unigram_definition = False
+        return self
+
 
     def compact(self, compactor):
         '''
@@ -56,6 +65,12 @@ class TermDocMatrixWithoutCategories(object):
         -------
         TermDocMatrix
         New Term Doc Matrix
+        '''
+        return compactor.compact(self)
+
+    def select(self, compactor):
+        '''
+        Same as compact
         '''
         return compactor.compact(self)
 
@@ -277,7 +292,8 @@ class TermDocMatrixWithoutCategories(object):
     def _get_non_unigrams(self):
         return [term for term
                 in self._term_idx_store._i2val
-                if ' ' in term or "'" in term]
+                if ' ' in term or (self._strict_unigram_definition and "'" in term)
+        ]
 
     def get_stoplisted_unigram_corpus(self, stoplist=None):
         '''
@@ -314,7 +330,7 @@ class TermDocMatrixWithoutCategories(object):
     def _remove_terms_from_list(self, stoplist):
         terms_to_ignore = [term for term
                            in self._term_idx_store._i2val
-                           if ' ' in term or "'" in term
+                           if ' ' in term or (self._strict_unigram_definition and "'" in term)
                            or term in stoplist]
         return self.remove_terms(terms_to_ignore)
 
@@ -414,7 +430,7 @@ class TermDocMatrixWithoutCategories(object):
         terms = self._term_idx_store.values()
         return dict(zip(terms, doc_ids))
 
-    def apply_ranker(self, term_ranker):
+    def apply_ranker(self, term_ranker, use_non_text_features):
         '''
         Parameters
         ----------
@@ -424,6 +440,8 @@ class TermDocMatrixWithoutCategories(object):
         -------
         pd.Dataframe
         '''
+        if use_non_text_features:
+            return term_ranker(self).use_non_text_features().get_ranks()
         return term_ranker(self).get_ranks()
 
     def add_doc_names_as_metadata(self, doc_names):

@@ -4,7 +4,7 @@
 [![Gitter Chat](https://img.shields.io/badge/GITTER-join%20chat-green.svg)](https://gitter.im/scattertext/Lobby)
 [![Twitter Follow](https://img.shields.io/twitter/follow/espadrine.svg?style=social&label=Follow)](https://twitter.com/jasonkessler)
 
-# Scattertext 0.0.2.43
+# Scattertext 0.0.2.51
 
 **Table of Contents**
 
@@ -62,10 +62,10 @@ with `word_similarity_explorer`, and the tokenization and sentence boundary dete
 capabilities will be low-performance regular expressions. See `demo_without_spacy.py`
 for an example. 
 
-It is recommended you install `jieba`, `spacy`, `empath`, `gensim` and `umap-learn` in order to 
+It is recommended you install `jieba`, `spacy`, `empath`, `astropy`, `gensim` and `umap-learn` in order to 
 take full advantage of Scattertext. 
 
-Python 2.7 support is experimental.  Many things will break.
+Scattertext should mostly work with Python 2.7.   
 
 The HTML outputs look best in Chrome and Safari.
 
@@ -82,9 +82,16 @@ The HTML outputs look best in Chrome and Safari.
 
 
 ## What's new
+In 0.0.2.44:
+* Added the following classes to support rank-based feature-selection: `AssociationCompactorByRank`, 
+`TermCategoryRanker`.
+
+
 In 0.0.2.43:
 * Made the term pop-up box on the category pairplot only the category name 
 * Fixed optimal projection search function 
+* Merged PR from @millengustavo to fix when a FutureWarning is issued every time the get_background_frequency_df 
+is called.
 
 In 0.0.2.42:
 * Fixed clickablity of terms, coloring in certain plots

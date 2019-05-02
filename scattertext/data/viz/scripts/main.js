@@ -218,6 +218,7 @@ buildViz = function (d3) {
         var label = d3.select('#' + divName).append("div")
             .attr("class", "label");
 
+
         var interpolateLightGreys = d3.interpolate(d3.rgb(230, 230, 230),
             d3.rgb(130, 130, 130));
         // setup fill color
@@ -630,13 +631,13 @@ buildViz = function (d3) {
             if ('metalists' in fullData && term in fullData.metalists) {
                 // from https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
                 function escapeRegExp(str) {
-                    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+                    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|\']/g, "\\$&");
                 }
 
                 console.log('term');
                 console.log(term);
                 pattern = new RegExp(
-                    '\\b(' + fullData.metalists[term].map(escapeRegExp).join('|') + ')\\b',
+                    '\\W(' + fullData.metalists[term].map(escapeRegExp).join('|') + ')\\W',
                     'gim'
                 );
             }
@@ -784,9 +785,10 @@ buildViz = function (d3) {
                 console.log("docLabelCountsSorted")
                 console.log(docLabelCountsSorted);
                 console.log(numMatches)
+                console.log('#'+divName+'-'+'categoryinfo')
                 d3.select('#'+divName+'-'+'categoryinfo').selectAll("div").remove();
                 if(showCategoryHeadings) {
-                    d3.select('#'+divName+'-'+'categoryinfo').attr('display', 'inline')
+                    d3.select('#'+divName+'-'+'categoryinfo').attr('display', 'inline');
                 }
                 function getCategoryStatsHTML(counts) {
                     return counts.matches + " document"
@@ -802,16 +804,10 @@ buildViz = function (d3) {
                         + "</span>";
                 }
 
+
                 docLabelCountsSorted.forEach(function(counts) {
                     var htmlToAdd = "<b>"+counts.label + "</b>: " +  getCategoryStatsHTML(counts);
-                    console.log(htmlToAdd);
-                    if(showCategoryHeadings) {
-                        d3.select('#'+divName+'-'+'categoryinfo')
-                            .attr('display', 'inline')
-                            .append('div')
-                            .html(htmlToAdd)
-                            .on("click", function() {window.location.hash = '#'+divName+'-'+'category' + counts.labelNum});
-                    }
+
                     if(counts.matches > 0) {
                         d3.select(divId)
                             .append("div")
@@ -823,6 +819,15 @@ buildViz = function (d3) {
                                 addSnippets(singleDoc, divId);
                             });
                     }
+
+                    if(showCategoryHeadings) {
+                        d3.select('#'+divName+'-'+'categoryinfo')
+                            .attr('display', 'inline')
+                            .append('div')
+                            .html(htmlToAdd)
+                            .on("click", function() {window.location.hash = '#'+divName+'-'+'category' + counts.labelNum});
+                    }
+
                 })
 
             
@@ -1050,6 +1055,19 @@ buildViz = function (d3) {
                 }
             } else {
                 // extra unified context code goes here
+                console.log("docLabelCountsSorted")
+                console.log(docLabelCountsSorted)
+
+                docLabelCountsSorted.forEach(function(counts) {
+                    var htmlToAdd = "<b>"+counts.label + "</b>: " +  getCategoryStatsHTML(counts);
+                    if(showCategoryHeadings) {
+                        console.log("XXXX")
+                        d3.select('#'+divName+'-'+'contexts')
+                            .append('div')
+                            .html("XX" + htmlToAdd)
+                            .on("click", function() {window.location.hash = '#'+divName+'-'+'category' + counts.labelNum});
+                    }
+                })
             }
             if (jump) {
                 if (window.location.hash == '#'+divName+'-'+'snippets') {
@@ -1078,7 +1096,7 @@ buildViz = function (d3) {
 
             function buildMatcher(term) {
 
-                var boundary = '\\b';
+                var boundary = '(?:\\W|^|$)';
                 var wordSep = "[^\\w]+";
                 if (asianMode) {
                     boundary = '( |$|^)';
@@ -1089,15 +1107,25 @@ buildViz = function (d3) {
                     wordSep = '';
                 }
                 var termToRegex = term;
-                ['[', ']', '(', ')', '{', '}', '^', '$', '.', '|', '?', "'", '"',
-                    '*', '+', '-', '=', '~', '`', '{', '#'].forEach(function (a) {
+
+                // https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+                function escapeRegExp(string) {
+                  return string.replace(/[#.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+                }
+                /*
+                ['[', ']', '(', ')', '{', '}', '^', '$', '|', '?', '"',
+                    '*', '+', '-', '=', '~', '`', '{'].forEach(function (a) {
                     termToRegex = termToRegex.replace(a, '\\\\' + a)
                 });
+                ['.', '#'].forEach(function(a) {termToRegex = termToRegex.replace(a, '\\' + a)})
+                */
+                termToRegex = escapeRegExp(termToRegex);
                 var regexp = new RegExp(boundary + '('
                     + removeUnderScoreJoin(
                         termToRegex.replace(' ', wordSep, 'gim')
                     )
                     + ')' + boundary, 'gim');
+                console.log(regexp)
                 try {
                     regexp.exec('X');
                 } catch (err) {
@@ -2209,50 +2237,72 @@ buildViz = function (d3) {
                             .match(/\S+/g) || []
                     ).length;
                     var name = null;
-                    if (fullData.docs.categories[x] == fullData.info.category_internal_name) {
-                        name = fullData.info.category_name;
-                    } else if (fullData.info.not_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.not_category_name;
-                    } else if (fullData.info.neutral_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.neutral_category_name;
-                    } else if (fullData.info.extra_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.extra_category_name;
-                    }
-                    if (name) {
-                        wordCounts[name] = wordCounts[name] ? wordCounts[name] + cnt : cnt
+                    if(unifiedContexts) {
+                        var name = fullData.docs.categories[x];
+                        wordCounts[name] = wordCounts[name] ? wordCounts[name] + cnt : cnt;
+                    } else {
+                        if (fullData.docs.categories[x] == fullData.info.category_internal_name) {
+                            name = fullData.info.category_name;
+                        } else if (fullData.info.not_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.not_category_name;
+                        } else if (fullData.info.neutral_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.neutral_category_name;
+                        } else if (fullData.info.extra_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.extra_category_name;
+                        }
+                        if (name) {
+                            wordCounts[name] = wordCounts[name] ? wordCounts[name] + cnt : cnt
+                        }
                     }
                     //!!!
 
                 });
                 fullData.docs.labels.forEach(function (x) {
-                    var name = null;
-                    if (fullData.docs.categories[x] == fullData.info.category_internal_name) {
-                        name = fullData.info.category_name;
-                    } else if (fullData.info.not_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.not_category_name;
-                    } else if (fullData.info.neutral_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.neutral_category_name;
-                    } else if (fullData.info.extra_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
-                        name = fullData.info.extra_category_name;
-                    }
-                    if (name) {
+
+                    if(unifiedContexts) {
+                        var name = fullData.docs.categories[x];
                         docCounts[name] = docCounts[name] ? docCounts[name] + 1 : 1
+                    } else {
+                        var name = null;
+                        if (fullData.docs.categories[x] == fullData.info.category_internal_name) {
+                            name = fullData.info.category_name;
+                        } else if (fullData.info.not_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.not_category_name;
+                        } else if (fullData.info.neutral_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.neutral_category_name;
+                        } else if (fullData.info.extra_category_internal_names.indexOf(fullData.docs.categories[x]) > -1) {
+                            name = fullData.info.extra_category_name;
+                        }
+                        if (name) {
+                            docCounts[name] = docCounts[name] ? docCounts[name] + 1 : 1
+                        }
                     }
                 });
                 console.log("docCounts");
                 console.log(docCounts)
                 var messages = [];
-                [fullData.info.category_name,
-                 fullData.info.not_category_name,
-                 fullData.info.neutral_category_name,
-                 fullData.info.extra_category_name].forEach(function (x, i) {
-                    if (docCounts[x] > 0) {
-                        messages.push('<b>' + x + '</b> document count: '
-                            + Number(docCounts[x]).toLocaleString('en')
-                            + '; word count: '
-                            + Number(wordCounts[x]).toLocaleString('en'));
-                    }
-                });
+                if (unifiedContexts) {
+                    fullData.docs.categories.forEach(function (x, i) {
+                        if (docCounts[x] > 0) {
+                            messages.push('<b>' + x + '</b> document count: '
+                                + Number(docCounts[x]).toLocaleString('en')
+                                + '; word count: '
+                                + Number(wordCounts[x]).toLocaleString('en'));
+                        }
+                    });
+                } else {
+                    [fullData.info.category_name,
+                     fullData.info.not_category_name,
+                     fullData.info.neutral_category_name,
+                     fullData.info.extra_category_name].forEach(function (x, i) {
+                        if (docCounts[x] > 0) {
+                            messages.push('<b>' + x + '</b> document count: '
+                                + Number(docCounts[x]).toLocaleString('en')
+                                + '; word count: '
+                                + Number(wordCounts[x]).toLocaleString('en'));
+                        }
+                    });
+                }
 
                 d3.select('#'+divName+'-'+'corpus-stats')
                     .style('width', width + margin.left + margin.right + 200)
@@ -2429,6 +2479,27 @@ buildViz = function (d3) {
             )
             
             var rawScores = getCategoryDenseRankScores(this.fullData, categoryNum);
+            /*
+            function logOddsRatioUninformativeDirichletPrior(fgFreqs, bgFreqs, alpha) {
+                var fgVocabSize = fgFreqs.reduce((x,y) => x+y);
+                var fgL = fgFreqs.map(x => (x + alpha)/((1+alpha)*fgVocabSize - x - alpha))
+                var bgVocabSize = bgFreqs.reduce((x,y) => x+y);
+                var bgL = bgFreqs.map(x => (x + alpha)/((1+alpha)*bgVocabSize - x - alpha))
+                var pooledVar = fgFreqs.map(function(x, i) {
+                    return (
+                        1/(x + alpha) 
+                        + 1/((1+alpha)*fgVocabSize - x - alpha)
+                        + 1/(bgFreqs[i] + alpha)
+                        + 1/((1+alpha)*bgVocabSize - bgFreqs[i] - alpha))
+                })
+                return pooledVar.map(function(x, i) {
+                    return (Math.log(fgL[i]) - Math.log(bgL[i]))/x;
+                })
+            }
+            var rawScores = logOddsRatioUninformativeDirichletPrior(
+                denseRanks.fgFreqs, denseRanks.bgFreqs, 0.01);
+            */
+                
             var maxRawScores = Math.max(...rawScores);
             var minRawScores = Math.min(...rawScores);
             var scores = rawScores.map(
@@ -2448,8 +2519,47 @@ buildViz = function (d3) {
             console.log(denseRanks);
             var fgFreqSum = denseRanks.fgFreqs.reduce((a,b) => a + b, 0)
             var bgFreqSum = denseRanks.bgFreqs.reduce((a,b) => a + b, 0)
+            
+            //!!! OLD and good
             var ox = denseRanks.bg;
             var oy = denseRanks.fg; 
+            
+            //!!! NEW
+            /*
+            var oy = denseRanks.fg.map((x,i)=> x - denseRanks.bg[i]);
+            var ox = denseRanks.fgFreqs.map((x,i)=> x/fgFreqSum - denseRanks.bgFreqs[i]/bgFreqSum);
+            */
+            /*
+            
+            var ox = denseRanks.fg;
+            */
+            
+            /*
+            ox = ox.map(function(x) {
+                if (x > 0)
+                    return 0.5 * x/Math.max(...ox) + 0.5;
+                else
+                    return 0.5 * (1 + x/Math.min(...ox));
+                    
+            })
+            oy = oy.map(function(x) {
+                if (x > 0)
+                    return 0.5 * x/Math.max(...oy) + 0.5;
+                else
+                    return 0.5 * (1 + x/Math.min(...oy));
+                    
+            })*/
+            
+            
+            
+            
+            
+            var oxmax = Math.max(...ox)
+            var oxmin = Math.min(...ox)
+            var ox = ox.map(x => (x - oxmin)/(oxmax - oxmin))
+            var oymax = Math.max(...oy)
+            var oymin = Math.min(...oy)
+            var oy = oy.map(x => (x - oymin)/(oymax - oymin))
             //var ox = logTermCounts
             //var oy = scores;
             var xf = this.x;
